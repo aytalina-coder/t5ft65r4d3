@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e3c72">
+    <title>MedTrek — трекер лекарств</title>
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --primary: #2c7da0;
+            --primary-dark: #1f5e7a;
+            --bg-light: #e0eafc;
+            --card-light: #ffffff;
+            --text-light: #0f172a;
+            --text-secondary: #64748b;
+            --border-light: #e2e8f0;
+            --danger: #c44536;
+            --success: #2b9348;
+            --warning: #ff9800;
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-xl: 40px;
+            --shadow: 0 8px 24px rgba(0,0,0,0.08);
+            --transition: 0.2s ease;
+        }
+
+        body.dark {
+            --bg-light: #0f172a;
+            --card-light: #1e293b;
+            --text-light: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-light: #334155;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        input, select, button {
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+
+        body {
+            background: var(--bg-light);
+            font-family: -apple-system, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            padding: var(--safe-top) 16px var(--safe-bottom);
+            transition: background 0.3s ease;
+            color: var(--text-light);
+            font-size: 16px;
+            line-height: 1.4;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 430px;
+            margin: 0 auto;
+            padding-bottom: 20px;
+        }
+
+        /* Безопасная зона для iPhone */
+        .safe-top {
+            padding-top: var(--safe-top);
+        }
+
+        .safe-bottom {
+            padding-bottom: var(--safe-bottom);
+        }
+
+        /* Тема */
+        .theme-toggle {
+            position: fixed;
+            top: calc(var(--safe-top) + 8px);
+            right: 16px;
+            background: rgba(44, 125, 160, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--text-light);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: var(--radius-xl);
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* Заголовок */
+        .header {
+            text-align: center;
+            padding: 16px 0 8px;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2c7da0, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 2px;
+        }
+
+        body.dark .logo {
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Карточка */
+        .card {
+            background: var(--card-light);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            transition: background 0.3s ease;
+            border: 1px solid var(--border-light);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        /* Форма */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        input, select {
+            width: 100%;
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: var(--card-light);
+            color: var(--text-light);
+            outline: none;
+            transition: var(--transition);
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(44, 125, 160, 0.15);
+        }
+
+        /* Кнопки */
+        .btn {
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            letter-spacing: -0.01em;
+            width: 100%;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+            opacity: 0.85;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(44, 125, 160, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid var(--border-light);
+            color: var(--text-light);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            font-size: 0.85rem;
+            padding: 8px 12px;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            width: auto;
+        }
+
+        /* Календарь */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .calendar-nav {
+            background: var(--bg-light);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: var(--transition);
+            touch-action: manipulation;
+        }
+
+        .calendar-nav:active {
+            background: var(--border-light);
+            transform: scale(0.95);
+        }
+
+        .month-year {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-light);
+            text-align: center;
+            flex: 1;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .weekday {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--primary);
+            padding: 6px 2px;
+            text-transform: uppercase;
+        }
+
+        .day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            color: var(--text-light);
+            touch-action: manipulation;
+        }
+
+        .day:active {
+            background: var(--border-light);
+            transform: scale(0.9);
+        }
+
+        .day.today {
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+        }
+
+        .day.has-med::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        .day.today.has-med::after {
+            background: white;
+        }
+
+        .day.other-month {
+            color: var(--text-secondary);
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* Список лекарств */
+        .med-item {
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: var(--transition);
+            border: 1px solid var(--border-light);
+        }
+
+        .med-item.overdue {
+            border-left: 4px solid var(--danger);
+        }
+
+        .med-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .med-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-light);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .med-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .med-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .med-actions .btn {
+            width: auto;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            border-radius: var(--radius-xl);
+        }
+
+        /* Секция выбранной даты */
+        .selected-date-section {
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin-top: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .selected-date-title {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .med-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.85rem;
+        }
+
+        .med-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: var(--radius-xl);
+        }
+
+        .status-badge.taken {
+            background: rgba(43, 147, 72, 0.15);
+            color: var(--success);
+        }
+
+        .status-badge.pending {
+            background: rgba(196, 69, 54, 0.1);
+            color: var(--danger);
+        }
+
+        /* Поиск */
+        .search-input {
+            background: var(--bg-light);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: 14px 18px;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+
+        /* Будильник */
+        .alarm-bar {
+            background: rgba(255, 217, 102, 0.15);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            border-radius: var(--radius-xl);
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            flex-wrap: wrap;
+        }
+
+        body.dark .alarm-bar {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        /* История */
+        .history-list {
+            max-height: 220px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: var(--radius-md);
+            background: var(--bg-light);
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        .history-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.8rem;
+            gap: 8px;
+        }
+
+        .history-entry:last-child {
+            border-bottom: none;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .flex-row .btn {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.8rem;
+            padding: 12px;
+        }
+
+        /* Адаптивный скролл */
+        ::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.15);
+            border-radius: 10px;
+        }
+
+        /* Медиа-запрос для iPhone 15 (393x852) */
+        @media screen and (max-width: 430px) {
+            body {
+                padding: var(--safe-top) 12px var(--safe-bottom);
+                font-size: 15px;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: var(--radius-md);
+            }
+
+            .day {
+                font-size: 0.8rem;
+            }
+
+            .btn {
+                padding: 12px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media screen and (min-width: 431px) and (max-width: 768px) {
+            .container {
+                max-width: 500px;
+                padding: 0 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="themeToggle" class="theme-toggle">
+        <span id="themeIcon">🌙</span>
+        <span id="themeText">Тема</span>
+    </button>
+
+    <div class="container">
+        <!-- Заголовок -->
+        <div class="header">
+            <div class="logo">💊 MedTrek</div>
+            <div class="subtitle">Никогда не пропускай дозу</div>
+        </div>
+
+        <!-- Добавление лекарства -->
+        <div class="card">
+            <div class="card-title">➕ Добавить напоминание</div>
+            <div class="form-group">
+                <label class="form-label">Название лекарства</label>
+                <input type="text" id="medName" placeholder="Напр. Амоксиклав" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Время приёма</label>
+                <input type="time" id="medTime" value="09:00">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Дата приёма</label>
+                <input type="date" id="medDate">
+            </div>
+            <button id="addBtn" class="btn btn-primary">➕ Добавить</button>
+        </div>
+
+        <!-- Календарь -->
+        <div class="card">
+            <div class="card-title">📅 Календарь приёмов</div>
+            <div class="calendar-header">
+                <button id="prevMonthBtn" class="calendar-nav">◀</button>
+                <span id="currentMonthYear" class="month-year"></span>
+                <button id="nextMonthBtn" class="calendar-nav">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="selected-date-section">
+                <div class="selected-date-title">📋 На выбранную дату</div>
+                <div id="selectedDateMedsList">Выберите день</div>
+            </div>
+        </div>
+
+        <!-- Поиск и список -->
+        <div class="card">
+            <div class="card-title">💊 Все лекарства</div>
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск по названию..." autocomplete="off">
+            <div id="medList"></div>
+        </div>
+
+        <!-- Будильник -->
+        <div class="alarm-bar">
+            <span>⏰ <span id="alarmText">Будильник активен</span></span>
+            <button id="testAlarmBtn" class="btn btn-outline btn-sm">🔔 Тест</button>
+        </div>
+
+        <!-- История и экспорт -->
+        <div class="card">
+            <div class="card-title">📋 История (30 дней)</div>
+            <div id="historyContainer" class="history-list">
+                <div style="color: var(--text-secondary); text-align:center; padding:20px;">📭 Пока ничего нет</div>
+            </div>
+            <div class="flex-row">
+                <button id="exportBtn" class="btn btn-outline">📎 Экспорт CSV</button>
+                <button id="clearHistoryBtn" class="btn btn-outline">🗑️ Очистить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let medicines = [];
+        let history = [];
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let audioContext = null;
+        let alarmCheckInterval = null;
+        let searchQuery = '';
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('medtrek_theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                document.getElementById('themeIcon').textContent = '☀️';
+                document.getElementById('themeText').textContent = 'Светлая';
+            }
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            
+            if (isDark) {
+                localStorage.setItem('medtrek_theme', 'dark');
+                icon.textContent = '☀️';
+                text.textContent = 'Светлая';
+            } else {
+                localStorage.setItem('medtrek_theme', 'light');
+                icon.textContent = '🌙';
+                text.textContent = 'Тема';
+            }
+        }
+
+        function loadData() {
+            const savedMeds = localStorage.getItem('medicines');
+            const savedHistory = localStorage.getItem('history');
+            if (savedMeds) medicines = JSON.parse(savedMeds);
+            if (savedHistory) history = JSON.parse(savedHistory);
+            
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('medDate');
+            if (dateInput) dateInput.value = today;
+            
+            renderMedicines();
+            renderHistory();
+            renderCalendar();
+            startAlarmChecker();
+        }
+
+        function saveData() {
+            localStorage.setItem('medicines', JSON.stringify(medicines));
+            localStorage.setItem('history', JSON.stringify(history));
+            renderCalendar();
+        }
+
+        function addMedicine() {
+            const nameInput = document.getElementById('medName');
+            const timeInput = document.getElementById('medTime');
+            const dateInput = document.getElementById('medDate');
+            
+            let name = nameInput.value.trim();
+            const time = timeInput.value;
+            const date = dateInput.value;
+            
+            if (!name) name = 'Парацетамол';
+            if (!date) {
+                alert('Выберите дату приёма');
+                return;
+            }
+            
+            medicines.push({
+                id: Date.now(),
+                name: name,
+                time: time,
+                date: date,
+                taken: false,
+                takenAt: null
+            });
+            
+            saveData();
+            renderMedicines();
+            renderCalendar();
+            
+            nameInput.value = '';
+            nameInput.focus();
+            
+            // Haptic feedback vibration
+            if (navigator.vibrate) navigator.vibrate(15);
+        }
+
+        function markTaken(id) {
+            const med = medicines.find(m => m.id === id);
+            if (med && !med.taken) {
+                med.taken = true;
+                med.takenAt = new Date().toISOString();
+                
+                history.unshift({
+                    id: Date.now(),
+                    name: med.name,
+                    time: med.time,
+                    date: med.date,
+                    takenAt: new Date().toLocaleString('ru-RU')
+                });
+                
+                if (history.length > 100) history.pop();
+                saveData();
+                renderMedicines();
+                renderHistory();
+                renderCalendar();
+                playBeep();
+                if (navigator.vibrate) navigator.vibrate([20, 50, 20]);
+            }
+        }
+
+        function deleteMedicine(id) {
+            if (confirm('Удалить напоминание?')) {
+                medicines = medicines.filter(m => m.id !== id);
+                saveData();
+                renderMedicines();
+                renderCalendar();
+                if (navigator.vibrate) navigator.vibrate(10);
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('Удалить всю историю приёмов?')) {
+                history = [];
+                saveData();
+                renderHistory();
+            }
+        }
+
+        function exportToCSV() {
+            if (history.length === 0) {
+                alert('Нет записей для экспорта');
+                return;
+            }
+            
+            let csv = "\uFEFFЛекарство,Время,Дата приёма,Время отметки\n";
+            history.forEach(e => {
+                const name = e.name.replace(/"/g, '""');
+                csv += `"${name}","${e.time}","${e.date}","${e.takenAt}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = `medtrek_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ CSV экспортирован');
+        }
+
+        function playBeep() {
+            try {
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') audioContext.resume();
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = 880;
+                gain.gain.value = 0.3;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3);
+                osc.stop(audioContext.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        function playAlarmSound() {
+            try {
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') audioContext.resume();
+                
+                function beep(freq, duration, delay, vol = 0.4) {
+                    setTimeout(() => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.value = freq;
+                        gain.gain.value = vol;
+                        osc.start();
+                        gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration);
+                        osc.stop(audioContext.currentTime + duration);
+                    }, delay);
+                }
+                
+                beep(523.25, 0.4, 0);
+                beep(587.33, 0.4, 0.45);
+                beep(659.25, 0.4, 0.9);
+                beep(880, 0.6, 1.4);
+                beep(880, 0.6, 2.1);
+                beep(880, 0.6, 2.8);
+                beep(1046.50, 0.8, 3.5);
+                beep(880, 0.5, 4.4);
+                beep(698.46, 0.8, 4.9);
+                
+                if (Notification.permission === 'granted') {
+                    new Notification('💊 MedTrek', { body: 'Время принять лекарство!' });
+                }
+                
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            } catch(e) {
+                alert('🔔 Время принять лекарство!');
+            }
+        }
+
+        function startAlarmChecker() {
+            if (alarmCheckInterval) clearInterval(alarmCheckInterval);
+            alarmCheckInterval = setInterval(() => {
+                const now = new Date();
+                const currentTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                const currentDate = now.toISOString().split('T')[0];
+                const dueMeds = medicines.filter(m => !m.taken && m.time === currentTime && m.date === currentDate);
+                
+                if (dueMeds.length > 0) {
+                    const names = dueMeds.map(m => m.name).join(', ');
+                    document.getElementById('alarmText').innerHTML = `🔔 Сейчас: ${names}`;
+                    playAlarmSound();
+                    setTimeout(() => {
+                        document.getElementById('alarmText').innerHTML = '⏰ Будильник активен';
+                    }, 10000);
+                } else {
+                    document.getElementById('alarmText').innerHTML = '⏰ Будильник активен';
+                }
+            }, 60000);
+            
+            setTimeout(() => {
+                const now = new Date();
+                const ct = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                const cd = now.toISOString().split('T')[0];
+                const due = medicines.filter(m => !m.taken && m.time === ct && m.date === cd);
+                if (due.length > 0) {
+                    document.getElementById('alarmText').innerHTML = `🔔 Сейчас: ${due.map(m=>m.name).join(', ')}`;
+                    playAlarmSound();
+                }
+            }, 1000);
+        }
+
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const startWeekday = firstDay.getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            document.getElementById('currentMonthYear').innerText = `${monthNames[month]} ${year}`;
+            
+            let gridHtml = '';
+            ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].forEach(d => {
+                gridHtml += `<div class="weekday">${d}</div>`;
+            });
+            
+            let startOffset = (startWeekday === 0 ? 6 : startWeekday - 1);
+            for (let i = startOffset - 1; i >= 0; i--) {
+                const dayNum = prevMonthDays - i;
+                gridHtml += `<div class="day other-month">${dayNum}</div>`;
+            }
+            
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const hasMed = medicines.some(m => m.date === dateStr);
+                let classes = 'day';
+                if (dateStr === todayStr) classes += ' today';
+                if (hasMed) classes += ' has-med';
+                gridHtml += `<div class="${classes}" data-date="${dateStr}">${d}</div>`;
+            }
+            
+            const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+            const nextMonthDays = totalCells - (startOffset + daysInMonth);
+            for (let i = 1; i <= nextMonthDays; i++) {
+                gridHtml += `<div class="day other-month">${i}</div>`;
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = gridHtml;
+            
+            document.querySelectorAll('.day:not(.other-month)').forEach(day => {
+                day.addEventListener('click', () => {
+                    const date = day.getAttribute('data-date');
+                    if (date) {
+                        selectedDate = new Date(date);
+                        showMedsForDate(date);
+                        if (navigator.vibrate) navigator.vibrate(8);
+                    }
+                });
+            });
+            
+            showMedsForDate(selectedDate.toISOString().split('T')[0]);
+        }
+
+        function showMedsForDate(dateStr) {
+            const meds = medicines.filter(m => m.date === dateStr);
+            const container = document.getElementById('selectedDateMedsList');
+            if (!container) return;
+            
+            if (meds.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-secondary); font-size:0.85rem; padding:8px;">Нет напоминаний на этот день</div>';
+            } else {
+                container.innerHTML = meds.map(m => `
+                    <div class="med-row">
+                        <span><strong>${escapeHtml(m.name)}</strong> · ${m.time}</span>
+                        <span class="status-badge ${m.taken ? 'taken' : 'pending'}">${m.taken ? '✅ Принято' : '⏳ Ожидает'}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderMedicines() {
+            const container = document.getElementById('medList');
+            if (!container) return;
+            
+            let filtered = [...medicines];
+            if (searchQuery) {
+                filtered = filtered.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            }
+            
+            filtered.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="color:var(--text-secondary); text-align:center; padding:20px; font-size:0.85rem;">
+                    ${medicines.length === 0 ? '➕ Добавьте лекарство выше' : '🔍 Ничего не найдено'}
+                </div>`;
+                return;
+            }
+            
+            const now = new Date();
+            container.innerHTML = filtered.map(med => {
+                const medDate = new Date(`${med.date}T${med.time}`);
+                const isOverdue = !med.taken && medDate < now;
+                return `
+                <div class="med-item ${isOverdue ? 'overdue' : ''}">
+                    <div class="med-info">
+                        <div class="med-name">${escapeHtml(med.name)}</div>
+                        <div class="med-meta">
+                            <span>⏰ ${med.time}</span>
+                            <span>📅 ${med.date}</span>
+                        </div>
+                    </div>
+                    <div class="med-actions">
+                        <button class="btn ${med.taken ? 'btn-success' : 'btn-primary'} btn-sm" 
+                                onclick="markTaken(${med.id})" 
+                                ${med.taken ? 'disabled' : ''}>
+                            ${med.taken ? '✅' : '💊'}
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteMedicine(${med.id})">🗑️</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyContainer');
+            if (!container) return;
+            
+            const last30 = history.slice(0, 30);
+            if (last30.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-secondary); text-align:center; padding:20px; font-size:0.85rem;">📭 Пока ничего нет</div>';
+                return;
+            }
+            
+            container.innerHTML = last30.map(e => `
+                <div class="history-entry">
+                    <span><strong>${escapeHtml(e.name)}</strong> · ${e.time}<br><small>📅 ${e.date}</small></span>
+                    <span style="color:var(--primary); font-size:0.7rem;">✅ ${e.takenAt}</span>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+        }
+
+        function prevMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+            if (navigator.vibrate) navigator.vibrate(10);
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+            if (navigator.vibrate) navigator.vibrate(10);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadData();
+            requestNotificationPermission();
+            
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('searchInput').addEventListener('input', e => {
+                searchQuery = e.target.value;
+                renderMedicines();
+            });
+            document.getElementById('addBtn').addEventListener('click', addMedicine);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+            document.getElementById('prevMonthBtn').addEventListener('click', prevMonth);
+            document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
+            document.getElementById('testAlarmBtn').addEventListener('click', playAlarmSound);
+            document.getElementById('medName').addEventListener('keypress', e => {
+                if (e.key === 'Enter') addMedicine();
+            });
+        });
+    </script>
+</body>
+</html>
