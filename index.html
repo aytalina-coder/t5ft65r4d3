@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MedTrek — трекер лекарств</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            transition: background 0.3s ease;
+        }
+
+        body.dark {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* ========= ПОЛНОЭКРАННОЕ ПРИВЕТСТВЕННОЕ ОКНО ========= */
+        .welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top left, #1e3c72, #0a1c2f);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+
+        body.dark .welcome-screen {
+            background: radial-gradient(circle at top left, #0f172a, #020617);
+        }
+
+        .welcome-card {
+            text-align: center;
+            max-width: 480px;
+            padding: 40px 28px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 64px;
+            box-shadow: 0 30px 45px rgba(0, 0, 0, 0.3);
+            animation: floatUp 0.7s ease-out;
+        }
+
+        body.dark .welcome-card {
+            background: rgba(30, 41, 59, 0.95);
+        }
+
+        .welcome-icon {
+            font-size: 6rem;
+            margin-bottom: 20px;
+            animation: pulseIcon 1.2s infinite alternate;
+        }
+
+        .welcome-title {
+            font-size: 2.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2c7da0, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 16px;
+        }
+
+        body.dark .welcome-title {
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            background-clip: text;
+            -webkit-background-clip: text;
+        }
+
+        .welcome-sub {
+            font-size: 1.2rem;
+            color: #2d3e50;
+            margin-bottom: 32px;
+            font-weight: 500;
+        }
+
+        body.dark .welcome-sub {
+            color: #cbd5e1;
+        }
+
+        .welcome-btn {
+            background: #2c7da0;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: 0.25s;
+        }
+
+        .welcome-btn:hover {
+            background: #1f5e7a;
+            transform: scale(1.02);
+        }
+
+        body.dark .welcome-btn {
+            background: #3b82f6;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0px) scale(1); }
+        }
+
+        @keyframes pulseIcon {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.07); }
+        }
+
+        .welcome-screen.hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* ========= ОСНОВНЫЕ СТИЛИ ========= */
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            transition: background 0.3s ease;
+        }
+
+        body.dark .card {
+            background: #1e293b;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1e3c72, #2b3b4e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        body.dark h1 {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            background-clip: text;
+            -webkit-background-clip: text;
+        }
+
+        .sub {
+            color: #4a5568;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+        }
+
+        body.dark .sub {
+            color: #94a3b8;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2c7da0;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 18px;
+            font-size: 1rem;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        body.dark .theme-toggle {
+            background: #f59e0b;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 650px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e66;
+        }
+
+        body.dark .form-group label {
+            color: #cbd5e1;
+        }
+
+        input, select, button {
+            border: none;
+            border-radius: 60px;
+            padding: 12px 18px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        input, select {
+            background: #f1f5f9;
+            width: 100%;
+            outline: none;
+            border: 1px solid transparent;
+        }
+
+        body.dark input, body.dark select {
+            background: #334155;
+            color: #f1f5f9;
+        }
+
+        input:focus {
+            border-color: #2c7da0;
+            background: white;
+        }
+
+        button {
+            background: #2c7da0;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #1f5e7a;
+            transform: scale(0.97);
+        }
+
+        .search-box {
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            background: #f1f5f9;
+            border-radius: 40px;
+            padding: 12px 20px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-header button {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 8px 16px;
+        }
+
+        body.dark .calendar-header button {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+
+        .calendar-weekday {
+            font-weight: bold;
+            color: #2c7da0;
+            padding: 8px;
+            font-size: 0.8rem;
+        }
+
+        body.dark .calendar-weekday {
+            color: #60a5fa;
+        }
+
+        .calendar-day {
+            background: #f8fafc;
+            padding: 10px 5px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            position: relative;
+        }
+
+        body.dark .calendar-day {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .calendar-day:hover {
+            background: #e2e8f0;
+        }
+
+        body.dark .calendar-day:hover {
+            background: #475569;
+        }
+
+        .calendar-day.today {
+            background: #2c7da0;
+            color: white;
+            font-weight: bold;
+        }
+
+        body.dark .calendar-day.today {
+            background: #3b82f6;
+        }
+
+        .calendar-day.has-med {
+            background: #c8e6f5;
+        }
+
+        body.dark .calendar-day.has-med {
+            background: #1e3a5f;
+        }
+
+        .calendar-day.has-med::after {
+            content: "💊";
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 10px;
+        }
+
+        .calendar-day.other-month {
+            color: #cbd5e1;
+        }
+
+        .selected-date-meds {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 20px;
+        }
+
+        body.dark .selected-date-meds {
+            background: #0f172a;
+        }
+
+        .selected-date-meds h4 {
+            margin-bottom: 10px;
+            color: #2c7da0;
+        }
+
+        .med-item {
+            background: #f9fafb;
+            border-radius: 28px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        body.dark .med-item {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        .med-info {
+            flex: 2;
+        }
+
+        .med-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #0f172a;
+        }
+
+        body.dark .med-name {
+            color: #f1f5f9;
+        }
+
+        .med-time {
+            font-size: 0.8rem;
+            color: #2c7da0;
+            margin-top: 4px;
+        }
+
+        .med-date {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .status-btn {
+            background: #e2e8f0;
+            color: #1e293b;
+            border-radius: 40px;
+            padding: 8px 18px;
+            font-weight: 600;
+        }
+
+        .status-btn.taken {
+            background: #2b9348;
+            color: white;
+        }
+
+        .delete-btn {
+            background: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            padding: 0 8px;
+        }
+
+        .delete-btn:hover {
+            color: #c44536;
+            background: none;
+        }
+
+        .history-box {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 8px;
+        }
+
+        body.dark .history-box {
+            background: #0f172a;
+        }
+
+        .history-entry {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        body.dark .history-entry {
+            border-bottom-color: #334155;
+            color: #e2e8f0;
+        }
+
+        .alarm-bar {
+            background: #fff9e6;
+            border: 1px solid #ffd966;
+            padding: 12px 20px;
+            border-radius: 40px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        body.dark .alarm-bar {
+            background: #422800;
+            border-color: #f59e0b;
+        }
+
+        .alarm-toggle {
+            background: #ff9800;
+            padding: 6px 12px;
+        }
+
+        .export-btn {
+            background: #334155;
+            width: 100%;
+        }
+
+        hr {
+            margin: 16px 0;
+        }
+
+        .flex-btns {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ПОЛНОЭКРАННОЕ ПРИВЕТСТВИЕ -->
+    <div id="welcomeScreen" class="welcome-screen">
+        <div class="welcome-card">
+            <div class="welcome-icon">💊✨</div>
+            <div class="welcome-title">MedTrek</div>
+            <div class="welcome-sub">Добро пожаловать!<br>Ваш личный трекер лекарств</div>
+            <button id="closeWelcomeBtn" class="welcome-btn">Начать приём ➤</button>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-toggle">🌙 Тёмная тема</button>
+
+    <div class="container">
+        <div class="card">
+            <h1>💊 MedTrek</h1>
+            <div class="sub">Никогда не пропускай дозу</div>
+
+            <div class="two-columns">
+                <div>
+                    <div class="form-group">
+                        <label>💊 Название лекарства</label>
+                        <input type="text" id="medName" placeholder="Напр. Амоксиклав">
+                    </div>
+                    <div class="form-group">
+                        <label>⏰ Время приёма</label>
+                        <input type="time" id="medTime" value="09:00">
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Дата приёма</label>
+                        <input type="date" id="medDate">
+                    </div>
+                    <button id="addBtn" style="width:100%">➕ Добавить напоминание</button>
+                </div>
+
+                <div>
+                    <div class="calendar-header">
+                        <button id="prevMonthBtn">◀</button>
+                        <span id="currentMonthYear" style="font-weight:bold;"></span>
+                        <button id="nextMonthBtn">▶</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                    <div class="selected-date-meds">
+                        <h4>📋 На выбранную дату</h4>
+                        <div id="selectedDateMedsList">Выберите день</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск лекарств по названию...">
+            </div>
+
+            <div id="medList"></div>
+
+            <div class="alarm-bar">
+                <div>
+                    <span>⏰</span>
+                    <span id="alarmText">Будильник: активен</span>
+                </div>
+                <button id="testAlarmBtn" class="alarm-toggle">🔔 Тест звука</button>
+            </div>
+
+            <hr>
+            <h3>📋 История (30 дней)</h3>
+            <div id="historyContainer" class="history-box">
+                <div style="color:#94a3b8; text-align:center;">Пока ничего нет</div>
+            </div>
+            <div class="flex-btns">
+                <button id="exportBtn" class="export-btn">📎 Экспорт CSV</button>
+                <button id="clearHistoryBtn" style="background:#64748b;">🗑️ Очистить историю</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let medicines = [];
+        let history = [];
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let audioContext = null;
+        let alarmCheckInterval = null;
+        let searchQuery = '';
+
+        function hideWelcomeScreen() {
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            welcomeScreen.classList.add('hide');
+            setTimeout(() => {
+                welcomeScreen.style.display = 'none';
+            }, 500);
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('medtrek_theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                document.getElementById('themeToggle').textContent = '☀️ Светлая тема';
+            }
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            const btn = document.getElementById('themeToggle');
+            if (isDark) {
+                localStorage.setItem('medtrek_theme', 'dark');
+                btn.textContent = '☀️ Светлая тема';
+            } else {
+                localStorage.setItem('medtrek_theme', 'light');
+                btn.textContent = '🌙 Тёмная тема';
+            }
+        }
+
+        function loadData() {
+            const savedMeds = localStorage.getItem('medicines');
+            const savedHistory = localStorage.getItem('history');
+            if (savedMeds) medicines = JSON.parse(savedMeds);
+            if (savedHistory) history = JSON.parse(savedHistory);
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('medDate').value = today;
+            
+            renderMedicines();
+            renderHistory();
+            renderCalendar();
+            startAlarmChecker();
+        }
+
+        function saveData() {
+            localStorage.setItem('medicines', JSON.stringify(medicines));
+            localStorage.setItem('history', JSON.stringify(history));
+            renderCalendar();
+        }
+
+        function addMedicine() {
+            const name = document.getElementById('medName').value.trim() || 'Парацетамол';
+            const time = document.getElementById('medTime').value;
+            const date = document.getElementById('medDate').value;
+            
+            if (!date) {
+                alert('Выберите дату приёма');
+                return;
+            }
+            
+            medicines.push({
+                id: Date.now(),
+                name: name,
+                time: time,
+                date: date,
+                taken: false,
+                takenAt: null
+            });
+            saveData();
+            renderMedicines();
+            renderCalendar();
+            document.getElementById('medName').value = '';
+        }
+
+        function markTaken(id) {
+            const med = medicines.find(m => m.id === id);
+            if (med && !med.taken) {
+                med.taken = true;
+                med.takenAt = new Date().toISOString();
+                history.unshift({
+                    id: Date.now(),
+                    name: med.name,
+                    time: med.time,
+                    date: med.date,
+                    takenAt: new Date().toLocaleString('ru-RU')
+                });
+                if (history.length > 100) history.pop();
+                saveData();
+                renderMedicines();
+                renderHistory();
+                renderCalendar();
+                playBeep();
+            }
+        }
+
+        function deleteMedicine(id) {
+            if (confirm('Удалить напоминание?')) {
+                medicines = medicines.filter(m => m.id !== id);
+                saveData();
+                renderMedicines();
+                renderCalendar();
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('Удалить всю историю приёмов?')) {
+                history = [];
+                saveData();
+                renderHistory();
+            }
+        }
+
+        function exportToCSV() {
+            if (history.length === 0) {
+                alert('Нет записей для экспорта');
+                return;
+            }
+            let csv = "Лекарство,Время,Дата приёма,Время отметки\n";
+            history.forEach(e => {
+                csv += `"${e.name}","${e.time}","${e.date}","${e.takenAt}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `medtrek_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function playBeep() {
+            try {
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = 880;
+                gain.gain.value = 0.3;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+                osc.stop(audioContext.currentTime + 0.5);
+                if (audioContext.state === 'suspended') audioContext.resume();
+            } catch(e) {}
+        }
+
+        // ========== НОВЫЙ ДЛИННЫЙ ЗВУК БУДИЛЬНИКА ==========
+        function playAlarmSound() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                function beep(freq, duration, delay, volume = 0.4) {
+                    setTimeout(() => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.value = freq;
+                        gain.gain.value = volume;
+                        osc.start();
+                        gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration);
+                        osc.stop(audioContext.currentTime + duration);
+                    }, delay);
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                // ДЛИННАЯ МЕЛОДИЯ (около 7 секунд)
+                // Вступление
+                beep(523.25, 0.4, 0);    // До
+                beep(587.33, 0.4, 0.45);  // Ре
+                beep(659.25, 0.4, 0.9);   // Ми
+                
+                // Основной сигнал (повторяющийся)
+                beep(880, 0.6, 1.4);      // Ля (длинный)
+                beep(880, 0.6, 2.1);
+                beep(880, 0.6, 2.8);
+                
+                // Финальный аккорд
+                beep(1046.50, 0.8, 3.5);  // До (высокий)
+                beep(880, 0.5, 4.4);
+                beep(698.46, 0.8, 4.9);   // Фа
+                
+                // Затихание
+                beep(659.25, 0.3, 5.8, 0.3);
+                beep(659.25, 0.3, 6.2, 0.25);
+                beep(659.25, 0.4, 6.6, 0.2);
+                
+                if (Notification.permission === 'granted') {
+                    new Notification('💊 MedTrek', { 
+                        body: 'Время принять лекарство! 💊'
+                    });
+                }
+            } catch(e) {
+                alert('🔔 Время принять лекарство!');
+            }
+        }
+
+        function startAlarmChecker() {
+            if (alarmCheckInterval) clearInterval(alarmCheckInterval);
+            alarmCheckInterval = setInterval(() => {
+                const now = new Date();
+                const currentTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                const currentDate = now.toISOString().split('T')[0];
+                const dueMeds = medicines.filter(m => !m.taken && m.time === currentTime && m.date === currentDate);
+                if (dueMeds.length > 0) {
+                    document.getElementById('alarmText').innerHTML = `🔔 Сейчас: ${dueMeds.map(m => m.name).join(', ')}`;
+                    playAlarmSound();
+                }
+            }, 60000);
+        }
+
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const startWeekday = firstDay.getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            document.getElementById('currentMonthYear').innerText = `${monthNames[month]} ${year}`;
+            
+            let gridHtml = '';
+            ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].forEach(day => {
+                gridHtml += `<div class="calendar-weekday">${day}</div>`;
+            });
+            
+            let startOffset = (startWeekday === 0 ? 6 : startWeekday - 1);
+            for (let i = startOffset - 1; i >= 0; i--) {
+                const dayNum = prevMonthDays - i;
+                gridHtml += `<div class="calendar-day other-month" data-date="${year}-${String(month+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}">${dayNum}</div>`;
+            }
+            
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const hasMed = medicines.some(m => m.date === dateStr);
+                let classes = 'calendar-day';
+                if (dateStr === todayStr) classes += ' today';
+                if (hasMed) classes += ' has-med';
+                gridHtml += `<div class="${classes}" data-date="${dateStr}">${d}</div>`;
+            }
+            
+            const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+            const nextMonthDays = totalCells - (startOffset + daysInMonth);
+            for (let i = 1; i <= nextMonthDays; i++) {
+                gridHtml += `<div class="calendar-day other-month" data-date="${year}-${String(month+2).padStart(2,'0')}-${String(i).padStart(2,'0')}">${i}</div>`;
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = gridHtml;
+            
+            document.querySelectorAll('.calendar-day').forEach(day => {
+                day.addEventListener('click', () => {
+                    const date = day.getAttribute('data-date');
+                    if (date) showMedsForDate(date);
+                });
+            });
+            
+            showMedsForDate(selectedDate.toISOString().split('T')[0]);
+        }
+
+        function showMedsForDate(dateStr) {
+            const medsOnDate = medicines.filter(m => m.date === dateStr);
+            const container = document.getElementById('selectedDateMedsList');
+            if (medsOnDate.length === 0) {
+                container.innerHTML = '<div style="color:#94a3b8;">Нет напоминаний на этот день</div>';
+            } else {
+                container.innerHTML = medsOnDate.map(m => `
+                    <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #ddd;">
+                        <span><strong>${escapeHtml(m.name)}</strong> (${m.time})</span>
+                        <span style="color:${m.taken ? '#2b9348' : '#c44536'}">${m.taken ? '✅ принято' : '⏳ ожидает'}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderMedicines() {
+            const container = document.getElementById('medList');
+            let filtered = [...medicines];
+            if (searchQuery) filtered = filtered.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            filtered.sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+            
+            if (filtered.length === 0) {
+                container.innerHTML = medicines.length === 0 
+                    ? '<div style="color:#94a3b8; text-align:center; padding:20px;">➕ Добавьте лекарство выше</div>'
+                    : '<div style="color:#94a3b8; text-align:center; padding:20px;">🔍 Ничего не найдено</div>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(med => {
+                const isOverdue = !med.taken && new Date(`${med.date}T${med.time}`) < new Date();
+                return `
+                <div class="med-item" style="${isOverdue ? 'border-left: 4px solid #c44536;' : ''}">
+                    <div class="med-info">
+                        <div class="med-name">${escapeHtml(med.name)}</div>
+                        <div class="med-time">⏰ ${med.time}</div>
+                        <div class="med-date">📅 ${med.date}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="status-btn ${med.taken ? 'taken' : ''}" onclick="markTaken(${med.id})" ${med.taken ? 'disabled' : ''}>
+                            ${med.taken ? '✅ Принято' : '💊 Принял'}
+                        </button>
+                        <button class="delete-btn" onclick="deleteMedicine(${med.id})">🗑️</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyContainer');
+            const last30 = history.slice(0, 30);
+            if (last30.length === 0) {
+                container.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:20px;">📭 Пока ничего нет</div>';
+                return;
+            }
+            container.innerHTML = last30.map(e => `
+                <div class="history-entry">
+                    <span><strong>${escapeHtml(e.name)}</strong> (${e.time})<br><small>📅 ${e.date}</small></span>
+                    <span style="color:#2c7da0;">✅ ${e.takenAt}</span>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+        }
+
+        function prevMonth() { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); }
+        function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadData();
+            requestNotificationPermission();
+            
+            document.getElementById('closeWelcomeBtn').addEventListener('click', hideWelcomeScreen);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderMedicines(); });
+            document.getElementById('addBtn').addEventListener('click', addMedicine);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+            document.getElementById('prevMonthBtn').addEventListener('click', prevMonth);
+            document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
+            document.getElementById('testAlarmBtn').addEventListener('click', () => playAlarmSound());
+            document.getElementById('medName').addEventListener('keypress', e => { if (e.key === 'Enter') addMedicine(); });
+        });
+    </script>
+</body>
+</html>
