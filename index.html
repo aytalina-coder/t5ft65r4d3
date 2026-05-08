@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MedTrack — трекер лекарств</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.2s ease;
+        }
+        body.dark {
+            background: linear-gradient(135deg, #0a0f1a 0%, #0f172a 50%, #1e1b2e 100%);
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        /* Приветственное окно */
+        .welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top left, #1e3c72, #0a1c2f);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease;
+        }
+        .welcome-card {
+            text-align: center;
+            max-width: 400px;
+            padding: 48px 32px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 56px;
+            animation: floatUp 0.7s ease-out;
+        }
+        body.dark .welcome-card { background: rgba(30,41,59,0.98); }
+        .welcome-icon { font-size: 80px; margin-bottom: 20px; animation: pulse 2s infinite; }
+        .welcome-title {
+            font-size: 42px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2c7da0, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .welcome-subtitle { font-size: 16px; color: #475569; margin-top: 16px; }
+        body.dark .welcome-subtitle { color: #cbd5e6; }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Панель разрешения звука */
+        .sound-permission-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #ff9800;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 60px;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .sound-permission-bar button {
+            background: white;
+            color: #ff9800;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .sound-permission-bar button:hover { transform: scale(1.02); }
+        @media (max-width: 500px) {
+            .sound-permission-bar { flex-direction: column; text-align: center; }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: background 0.3s ease;
+        }
+        body.dark .card { 
+            background: #1e293b; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        h1 { font-size: 28px; margin-bottom: 4px; color: #1e293b; }
+        body.dark h1 { color: #f1f5f9; }
+        .sub { color: #64748b; margin-bottom: 20px; font-size: 14px; }
+        body.dark .sub { color: #94a3b8; }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            z-index: 100;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        body.dark .theme-toggle {
+            background: #334155;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+        .theme-toggle:hover { transform: scale(1.02); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #334155; }
+        body.dark .form-group label { color: #cbd5e1; }
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 40px;
+            font-size: 16px;
+            transition: all 0.2s;
+            background: white;
+            color: #1e293b;
+        }
+        body.dark input, body.dark select {
+            background: #0f172a;
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 2px rgba(44,125,160,0.2);
+        }
+        button {
+            background: #2c7da0;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        button:active { transform: translateY(1px); }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .calendar-day {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1e293b;
+            font-weight: 500;
+        }
+        body.dark .calendar-day { 
+            background: #334155; 
+            color: #e2e8f0;
+        }
+        .calendar-day:hover {
+            transform: scale(1.05);
+            background: #cbd5e1;
+        }
+        body.dark .calendar-day:hover { background: #475569; }
+        .calendar-day.today { background: #2c7da0; color: white; }
+        .calendar-day.has-med { background: #b8e1f5; color: #1e3c72; }
+        body.dark .calendar-day.has-med { background: #1e4a6b; color: #b8e1f5; }
+        .calendar-day.other-month { opacity: 0.5; }
+        .med-item {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        body.dark .med-item { background: #0f172a; }
+        .med-item:hover { transform: translateX(4px); }
+        .med-item strong { color: #1e293b; }
+        body.dark .med-item strong { color: #f1f5f9; }
+        .med-item small { color: #64748b; }
+        body.dark .med-item small { color: #94a3b8; }
+        .alarm-bar {
+            background: #fff9e6;
+            border: 1px solid #ffd966;
+            padding: 12px 20px;
+            border-radius: 40px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        body.dark .alarm-bar { background: #2d1f00; border-color: #f59e0b; }
+        .alarm-bar span { color: #5a3e00; font-weight: 500; }
+        body.dark .alarm-bar span { color: #fde68a; }
+        .history-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        body.dark .history-item { border-bottom-color: #334155; }
+        .history-item strong { color: #1e293b; }
+        body.dark .history-item strong { color: #f1f5f9; }
+        .history-item span:last-child { color: #2b9348; font-weight: 500; }
+        .flex-row { display: flex; gap: 12px; margin-top: 16px; }
+        .flex-row button { flex: 1; }
+        .empty-state { text-align: center; padding: 30px; color: #94a3b8; }
+        body.dark .empty-state { color: #64748b; }
+        #selectedDateMeds {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 20px;
+        }
+        body.dark #selectedDateMeds {
+            background: #0f172a;
+        }
+        #selectedDateMeds strong { color: #1e293b; }
+        body.dark #selectedDateMeds strong { color: #cbd5e1; }
+        #selectedDateMedsList div { color: #334155; }
+        body.dark #selectedDateMedsList div { color: #94a3b8; }
+        .calendar-grid .weekday {
+            font-weight: bold;
+            padding: 8px 5px;
+            color: #475569;
+        }
+        body.dark .calendar-grid .weekday { color: #94a3b8; }
+        ::placeholder { color: #94a3b8; }
+        body.dark ::placeholder { color: #64748b; }
+    </style>
+</head>
+<body>
+    <!-- Приветственное окно (2 секунды) -->
+    <div id="welcomeScreen" class="welcome-overlay">
+        <div class="welcome-card">
+            <div class="welcome-icon">💊✨</div>
+            <div class="welcome-title">MedTrack</div>
+            <div class="welcome-subtitle">Ваш персональный трекер приёма лекарств</div>
+        </div>
+    </div>
+
+    <!-- Панель разрешения звука -->
+    <div id="soundPermissionBar" class="sound-permission-bar">
+        <span>🔔 Для работы будильника нажмите сюда</span>
+        <button id="enableSoundBtn">🎵 Включить звук</button>
+    </div>
+
+    <button id="themeToggle" class="theme-toggle">🌙 Тёмная</button>
+
+    <div class="container">
+        <div class="card">
+            <h1>💊 MedTrack</h1>
+            <div class="sub">Никогда не пропускай приём</div>
+            
+            <div class="form-group">
+                <label>💊 Название лекарства</label>
+                <input type="text" id="medName" placeholder="Напр. Амоксиклав">
+            </div>
+            <div class="form-group">
+                <label>⏰ Время приёма</label>
+                <input type="time" id="medTime" value="09:00">
+            </div>
+            <div class="form-group">
+                <label>📅 Дата приёма</label>
+                <input type="date" id="medDate">
+            </div>
+            <button id="addBtn" style="width:100%">➕ Добавить</button>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <button id="prevMonthBtn">◀</button>
+                <span id="currentMonthYear" style="font-weight:bold;"></span>
+                <button id="nextMonthBtn">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div id="selectedDateMeds">
+                <strong>📋 На выбранную дату</strong>
+                <div id="selectedDateMedsList">Выберите день</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <input type="text" id="searchInput" placeholder="🔍 Поиск лекарств..." style="margin-bottom: 15px;">
+            <div id="medList"></div>
+        </div>
+
+        <div class="alarm-bar">
+            <span>⏰ <span id="alarmText">Будильник активен</span></span>
+            <button id="testAlarmBtn" style="background:#ff9800; padding:6px 16px;">🔔 Тест</button>
+        </div>
+
+        <div class="card">
+            <h3>📋 История (30 дней)</h3>
+            <div id="historyContainer"></div>
+            <div class="flex-row">
+                <button id="exportBtn">📎 Экспорт CSV</button>
+                <button id="clearHistoryBtn" style="background:#64748b;">🗑️ Очистить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let medicines = [];
+        let history = [];
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let audioContext = null;
+        let alarmCheckInterval = null;
+        let searchQuery = '';
+        let soundEnabled = false;
+
+        // ========== АКТИВАЦИЯ ЗВУКА ==========
+        function enableSound() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                audioContext.resume().then(() => {
+                    soundEnabled = true;
+                    document.getElementById('soundPermissionBar').style.display = 'none';
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.frequency.value = 880;
+                    gain.gain.value = 0.3;
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3);
+                    osc.stop(audioContext.currentTime + 0.3);
+                    localStorage.setItem('MedTrack_sound_enabled', 'true');
+                });
+            } catch(e) { console.log('Sound enable error:', e); }
+        }
+
+        function initSoundCheck() {
+            const soundEnabledFlag = localStorage.getItem('MedTrack_sound_enabled');
+            if (soundEnabledFlag === 'true') {
+                const bar = document.getElementById('soundPermissionBar');
+                if (bar) bar.style.display = 'none';
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                audioContext.resume().then(() => { soundEnabled = true; });
+            }
+        }
+
+        // ========== ВЕСЁЛАЯ МЕЛОДИЯ БУДИЛЬНИКА ==========
+        function playAlarmSound() {
+            if (!soundEnabled) {
+                const bar = document.getElementById('soundPermissionBar');
+                if (bar) bar.style.display = 'flex';
+                showNotification();
+                return;
+            }
+            
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                function playTone(freq, duration, delay, volume = 0.4, type = 'sine') {
+                    setTimeout(() => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.type = type;
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(volume, audioContext.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+                        osc.start(audioContext.currentTime);
+                        osc.stop(audioContext.currentTime + duration);
+                    }, delay * 1000);
+                }
+                
+                playTone(523.25, 0.2, 0.0, 0.35, 'sine');
+                playTone(587.33, 0.2, 0.25, 0.35, 'sine');
+                playTone(659.25, 0.2, 0.50, 0.35, 'sine');
+                playTone(783.99, 0.3, 0.75, 0.4, 'sine');
+                playTone(659.25, 0.2, 1.2, 0.4, 'triangle');
+                playTone(783.99, 0.2, 1.45, 0.4, 'triangle');
+                playTone(880.00, 0.3, 1.7, 0.45, 'triangle');
+                playTone(783.99, 0.2, 2.1, 0.4, 'triangle');
+                playTone(659.25, 0.2, 2.35, 0.4, 'triangle');
+                playTone(587.33, 0.3, 2.6, 0.4, 'triangle');
+                playTone(1046.50, 0.2, 5.2, 0.5, 'square');
+                playTone(987.77, 0.2, 5.45, 0.45, 'square');
+                playTone(880.00, 0.2, 5.7, 0.45, 'square');
+                playTone(783.99, 0.2, 5.95, 0.4, 'square');
+                playTone(1046.50, 0.3, 7.4, 0.5, 'sine');
+                playTone(1174.66, 0.3, 7.7, 0.5, 'sine');
+                playTone(1318.52, 0.4, 8.0, 0.55, 'sine');
+                
+            } catch(e) {
+                console.log('Alarm sound error:', e);
+            }
+            
+            showNotification();
+            
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 80, 200, 80, 200, 100, 300]);
+            }
+        }
+        
+        function playSuccessSound() {
+            if (!soundEnabled) return;
+            try {
+                if (!audioContext) return;
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = 660;
+                gain.gain.value = 0.2;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2);
+                osc.stop(audioContext.currentTime + 0.2);
+            } catch(e) {}
+        }
+        
+        function showNotification() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('💊 MedTrack', { body: 'Время принять лекарство!' });
+            }
+        }
+
+        // ========== ПРИВЕТСТВИЕ ==========
+        function initWelcome() {
+            const welcome = document.getElementById('welcomeScreen');
+            if (welcome) {
+                setTimeout(() => {
+                    welcome.style.transition = 'opacity 0.8s';
+                    welcome.style.opacity = '0';
+                    setTimeout(() => { welcome.style.display = 'none'; }, 800);
+                }, 2000);
+            }
+        }
+
+        // ========== ТЕМА ==========
+        function initTheme() {
+            if (localStorage.getItem('MedTrack_theme') === 'dark') {
+                document.body.classList.add('dark');
+                document.getElementById('themeToggle').textContent = '☀️ Светлая';
+            }
+        }
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            localStorage.setItem('MedTrack_theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeToggle').textContent = isDark ? '☀️ Светлая' : '🌙 Тёмная';
+        }
+
+        // ========== ДАННЫЕ ==========
+        function loadData() {
+            const savedMeds = localStorage.getItem('medicines');
+            const savedHistory = localStorage.getItem('history');
+            if (savedMeds) medicines = JSON.parse(savedMeds);
+            if (savedHistory) history = JSON.parse(savedHistory);
+            document.getElementById('medDate').value = new Date().toISOString().split('T')[0];
+            renderAll();
+            startAlarmChecker();
+        }
+
+        function saveData() {
+            localStorage.setItem('medicines', JSON.stringify(medicines));
+            localStorage.setItem('history', JSON.stringify(history));
+            renderCalendar();
+        }
+
+        function renderAll() { renderMedicines(); renderHistory(); renderCalendar(); }
+
+        function addMedicine() {
+            const name = document.getElementById('medName').value.trim();
+            if (!name) { alert('Введите название лекарства'); return; }
+            const time = document.getElementById('medTime').value;
+            const date = document.getElementById('medDate').value;
+            if (!date) { alert('Выберите дату'); return; }
+            medicines.push({ id: Date.now(), name, time, date, taken: false, takenAt: null });
+            saveData();
+            renderMedicines();
+            renderCalendar();
+            document.getElementById('medName').value = '';
+        }
+
+        window.markTaken = function(id) {
+            const med = medicines.find(m => m.id === id);
+            if (med && !med.taken) {
+                med.taken = true;
+                med.takenAt = new Date().toISOString();
+                history.unshift({
+                    id: Date.now(),
+                    name: med.name,
+                    time: med.time,
+                    date: med.date,
+                    takenAt: new Date().toLocaleString('ru-RU')
+                });
+                if (history.length > 100) history.pop();
+                saveData();
+                renderMedicines();
+                renderHistory();
+                renderCalendar();
+                playSuccessSound();
+            }
+        };
+
+        window.deleteMedicine = function(id) {
+            if (confirm('Удалить напоминание?')) {
+                medicines = medicines.filter(m => m.id !== id);
+                saveData();
+                renderMedicines();
+                renderCalendar();
+            }
+        };
+
+        function clearHistory() {
+            if (confirm('Удалить историю?')) { history = []; saveData(); renderHistory(); }
+        }
+
+        function exportToCSV() {
+            if (history.length === 0) { alert('Нет записей'); return; }
+            let csv = '\uFEFFЛекарство,Время,Дата приёма,Время отметки\n';
+            history.forEach(e => { csv += `"${e.name.replace(/"/g, '""')}","${e.time}","${e.date}","${e.takenAt}"\n`; });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `MedTrack_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // ========== БУДИЛЬНИК ==========
+        function startAlarmChecker() {
+            if (alarmCheckInterval) clearInterval(alarmCheckInterval);
+            alarmCheckInterval = setInterval(() => {
+                const now = new Date();
+                const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+                const date = now.toISOString().split('T')[0];
+                const dueMeds = medicines.filter(m => !m.taken && m.time === time && m.date === date);
+                
+                const alarmText = document.getElementById('alarmText');
+                if (dueMeds.length > 0) {
+                    alarmText.innerHTML = `🔔 Сейчас: ${dueMeds.map(m => m.name).join(', ')}`;
+                    playAlarmSound();
+                    setTimeout(() => { alarmText.innerHTML = '⏰ Будильник активен'; }, 10000);
+                }
+            }, 30000);
+        }
+
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        // ========== КАЛЕНДАРЬ ==========
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            let startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prevDays = new Date(year, month, 0).getDate();
+            const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+            document.getElementById('currentMonthYear').innerText = `${monthNames[month]} ${year}`;
+            let html = '';
+            ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(d => { html += `<div class="weekday">${d}</div>`; });
+            for (let i = startOffset - 1; i >= 0; i--) { html += `<div class="calendar-day other-month">${prevDays - i}</div>`; }
+            const todayStr = new Date().toISOString().split('T')[0];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const hasMed = medicines.some(m => m.date === dateStr);
+                let cls = 'calendar-day';
+                if (dateStr === todayStr) cls += ' today';
+                if (hasMed) cls += ' has-med';
+                html += `<div class="${cls}" data-date="${dateStr}">${d}</div>`;
+            }
+            document.getElementById('calendarGrid').innerHTML = html;
+            document.querySelectorAll('.calendar-day[data-date]').forEach(day => {
+                day.addEventListener('click', () => showMedsForDate(day.dataset.date));
+            });
+            showMedsForDate(selectedDate.toISOString().split('T')[0]);
+        }
+
+        function showMedsForDate(dateStr) {
+            const meds = medicines.filter(m => m.date === dateStr);
+            const container = document.getElementById('selectedDateMedsList');
+            if (meds.length === 0) container.innerHTML = '<div>✨ Нет напоминаний</div>';
+            else container.innerHTML = meds.map(m => `<div style="display:flex; justify-content:space-between; padding:5px 0;"><span><strong>${escapeHtml(m.name)}</strong> (${m.time})</span><span>${m.taken ? '✅ Принято' : '⏳ Ожидает'}</span></div>`).join('');
+        }
+
+        function renderMedicines() {
+            const container = document.getElementById('medList');
+            let filtered = [...medicines];
+            if (searchQuery) filtered = filtered.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            filtered.sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+            if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">➕ Добавьте лекарство</div>'; return; }
+            container.innerHTML = filtered.map(med => `
+                <div class="med-item">
+                    <div><strong>${escapeHtml(med.name)}</strong><br><small>⏰ ${med.time} · 📅 ${med.date}</small></div>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="markTaken(${med.id})" style="background:#2b9348; padding:8px 16px;" ${med.taken ? 'disabled' : ''}>${med.taken ? '✅' : '💊'}</button>
+                        <button onclick="deleteMedicine(${med.id})" style="background:#c44536;">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyContainer');
+            const last30 = history.slice(0,30);
+            if (last30.length === 0) { container.innerHTML = '<div class="empty-state">📭 Пока ничего нет</div>'; return; }
+            container.innerHTML = last30.map(e => `<div class="history-item"><span><strong>${escapeHtml(e.name)}</strong> (${e.time})<br><small>${e.date}</small></span><span>✅ ${e.takenAt}</span></div>`).join('');
+        }
+
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+        function prevMonth() { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); }
+        function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); }
+
+        // ========== ЗАПУСК ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            initWelcome();
+            initTheme();
+            initSoundCheck();
+            loadData();
+            requestNotificationPermission();
+            
+            document.getElementById('enableSoundBtn')?.addEventListener('click', enableSound);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderMedicines(); });
+            document.getElementById('addBtn').addEventListener('click', addMedicine);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+            document.getElementById('prevMonthBtn').addEventListener('click', prevMonth);
+            document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
+            document.getElementById('testAlarmBtn').addEventListener('click', () => playAlarmSound());
+            document.getElementById('medName').addEventListener('keypress', e => { if (e.key === 'Enter') addMedicine(); });
+        });
+    </script>
+</body>
+</html>
